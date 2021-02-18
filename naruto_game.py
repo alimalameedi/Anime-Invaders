@@ -5,6 +5,7 @@ from naruto import NarutoCharacter
 from naruto_background import Background
 from settings import Settings
 from shuriken import Bullet
+from hinata import Hinata
 
 
 class HeroGame:
@@ -22,6 +23,7 @@ class HeroGame:
         self.background = Background('images/1739346.jpg', [0, 0])
         self.character = NarutoCharacter(self)
         self.bullets = pygame.sprite.Group()
+        self.enemy = pygame.sprite.Group()
 
     def run_game(self):
 
@@ -30,6 +32,12 @@ class HeroGame:
             self.character.update()
             self._update_bullets()
             self._update_screen_()
+            self._create_fleet()
+
+    def _create_fleet(self):
+        """Create fleet of Hinata!"""
+        hinata_enemy = Hinata(self)
+        self.enemy.add(hinata_enemy)
 
     def _check_event_(self):
         for event in pygame.event.get():
@@ -76,6 +84,8 @@ class HeroGame:
 
         for bullet in self.bullets.sprites():
             bullet.blit_bullet()
+
+        self.enemy.draw(self.screen)
 
         pygame.display.flip()
 

@@ -24,6 +24,7 @@ class HeroGame:
         self.character = NarutoCharacter(self)
         self.bullets = pygame.sprite.Group()
         self.enemy = pygame.sprite.Group()
+        self._create_fleet()
 
     def run_game(self):
 
@@ -31,13 +32,47 @@ class HeroGame:
             self._check_event_()
             self.character.update()
             self._update_bullets()
+            self._update_hinata()
             self._update_screen_()
-            self._create_fleet()
 
     def _create_fleet(self):
         """Create fleet of Hinata!"""
         hinata_enemy = Hinata(self)
-        self.enemy.add(hinata_enemy)
+        enemy_width, enemy_height = hinata_enemy.rect.size
+        available_space_x = self.settings.screen_width - (2 * enemy_width)
+        number_enemies_x = available_space_x // (2 * enemy_width)
+
+        naruto_height = self.character.rect.height
+        available_space_y = (self.settings.screen_height -
+                             (3 * enemy_height) - naruto_height)
+        number_rows = available_space_y // (5 * enemy_height)
+
+        for row_number in range(number_rows):
+            for enemies in range(number_enemies_x):
+                self._create_enemies(enemies, row_number)
+
+    def _create_enemies(self, enemies, row_number):
+            hinata_enemy = Hinata(self)
+            enemy_width, enemy_height = hinata_enemy.rect.size
+            hinata_enemy.x = enemy_width + 2 * enemy_width * enemies
+            hinata_enemy.rect.x = hinata_enemy.x
+            hinata_enemy.rect.y = hinata_enemy.rect.height + 2 * hinata_enemy.rect.height * row_number
+            self.enemy.add(hinata_enemy)
+
+
+    def _check_fleet_edges(self):
+        """Respond appropriately if Hinata reaches an edge."""
+        for hinata in self.enemy.sprites():
+            if hinata.check_edges():
+                self._change_fleet_direction()
+                break
+
+
+    def _change_fleet_direction(self):
+        """Drop the entire fleet and change the fleet's direction."""
+        for hinata in self.enemy.sprites():
+            hinata.rect.y += self.settings.fleet_drop_speed
+        self.settings.fleet_direction *= -1
 
     def _check_event_(self):
         for event in pygame.event.get():
@@ -98,6 +133,13 @@ class HeroGame:
         for bullet in self.bullets.copy():
             if bullet.rect.bottom <= 0:
                 self.bullets.remove(bullet)
+
+    def _update_hinata(self):
+        """Check if fleet is at an edge,
+             then update the positions of all Hinata in the fleet!
+        """
+        self._check_fleet_edges()
+        self.enemy.update()
 
 
 if __name__ == '__main__':

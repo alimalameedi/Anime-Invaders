@@ -8,6 +8,8 @@ from settings import Settings
 from shuriken import Bullet
 from hinata import Hinata
 from gamestats import GameStats
+from button import Button
+from scoreboard import Scoreboard
 
 
 class HeroGame:
@@ -28,6 +30,8 @@ class HeroGame:
         self.bullets = pygame.sprite.Group()
         self.enemy = pygame.sprite.Group()
         self._create_fleet()
+
+        self.play_button = Button(self, "Play")
 
     def run_game(self):
 
@@ -81,12 +85,38 @@ class HeroGame:
         self.settings.fleet_direction *= -1
 
     def _check_event_(self):
+        """Respond to keypresses and mouse events. Wherever the mouse clicks, it registers."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 sys.exit()
+            # Every mouse click registers the x-y coordinates in a tuple with get_pos(). This can
+            # then be used to determine if the button's rect has contact (collides) with the mouse click.
+            # basically if the two coordinates overlap/collide.
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_pos = pygame.mouse.get_pos()
+                self._check_play_button(mouse_pos)
 
             self._check_down_key_(event)
             self._check_up_key_(event)
+
+    def _check_play_button(self, mouse_pos):
+        """Start a new game when the player clicks Play."""
+        button_clicked = self.play_button.rect.collidepoint(mouse_pos)
+        if button_clicked and not self.stats.game_active:
+            self.stats.reset_stats()
+            self.settings.initialize_dynamic_settings()
+            self.stats.game_active = True
+
+            # Get rid of remaining enemies and bullets.
+            self.enemy.empty()
+            self.bullets.empty()
+
+            # Create new fleet and center the ship
+            self._create_fleet()
+            self.character.center_ship()
+
+            # Hide mouse cursor when game starts.
+            pygame.mouse.set_visible(False)
 
     def _check_down_key_(self, event):
 
@@ -128,6 +158,9 @@ class HeroGame:
 
         self.enemy.draw(self.screen)
 
+        if not self.stats.game_active:
+            self.play_button.draw_button()
+
         pygame.display.flip()
 
     def _update_bullets(self):
@@ -150,9 +183,10 @@ class HeroGame:
         if len(self.enemy) == 0:
             self.bullets.empty()
             self._create_fleet()
+            self.settings.increase_speed()
 
     def _ship_hit(self):
-        """Respond to the ship  being hit by an alien."""
+        """Respond to the ship being hit by an alien."""
         if self.stats.characters_remaining > 0:
             self.stats.characters_remaining -= 1
             self.enemy.empty()
@@ -163,6 +197,7 @@ class HeroGame:
 
         else:
             self.stats.game_active = False
+            pygame.mouse.set_visible(True)
 
     def _check_aliens_bottom(self):
         """Check if the aliens hit the screen's bottom."""

@@ -1,4 +1,5 @@
 import sys
+from time import sleep
 import pygame
 
 from naruto import NarutoCharacter
@@ -6,6 +7,7 @@ from naruto_background import Background
 from settings import Settings
 from shuriken import Bullet
 from hinata import Hinata
+from gamestats import GameStats
 
 
 class HeroGame:
@@ -20,6 +22,7 @@ class HeroGame:
         # self.settings.screen_height = self.screen.get_rect().height
 
         pygame.display.set_caption("Welcome to Naruto's journey to Hokage!")
+        self.stats = GameStats(self)
         self.background = Background('images/1739346.jpg', [0, 0])
         self.character = NarutoCharacter(self)
         self.bullets = pygame.sprite.Group()
@@ -30,9 +33,12 @@ class HeroGame:
 
         while True:
             self._check_event_()
-            self.character.update()
-            self._update_bullets()
-            self._update_hinata()
+
+            if self.stats.game_active:
+                self.character.update()
+                self._update_bullets()
+                self._update_hinata()
+
             self._update_screen_()
 
     def _create_fleet(self):
@@ -134,6 +140,41 @@ class HeroGame:
             if bullet.rect.bottom <= 0:
                 self.bullets.remove(bullet)
 
+        # Check for any bullets that have hit aliens.
+
+        self._check_bullet_alien_collisions()
+
+    def _check_bullet_alien_collisions(self):
+        collisions = pygame.sprite.groupcollide(self.bullets, self.enemy, True, True)
+
+        if len(self.enemy) == 0:
+            self.bullets.empty()
+            self._create_fleet()
+
+    def _ship_hit(self):
+        """Respond to the ship  being hit by an alien."""
+        if self.stats.characters_remaining > 0:
+            self.stats.characters_remaining -= 1
+            self.enemy.empty()
+            self.bullets.empty()
+            self._create_fleet()
+            self.character.center_ship()
+            sleep(0.5)
+
+        else:
+            self.stats.game_active = False
+
+    def _check_aliens_bottom(self):
+        """Check if the aliens hit the screen's bottom."""
+        screen_rect = self.screen.get_rect()
+
+        for hinata in self.enemy.sprites():
+            if hinata.rect.bottom >= screen_rect.bottom:
+                # Treat this the same as if the ship got hit.
+                self._ship_hit()
+                break
+
+
     def _update_hinata(self):
         """Check if fleet is at an edge,
              then update the positions of all Hinata in the fleet!
@@ -141,6 +182,20 @@ class HeroGame:
         self._check_fleet_edges()
         self.enemy.update()
 
+        if pygame.sprite.spritecollideany(self.character, self.enemy):
+            self._ship_hit()
+
+        # Look for alien-ship collisions.
+
+        if pygame.sprite.spritecollideany(self.character, self.enemy):
+            print("Ship hit!!!")
+
+            self.enemy.empty()
+            self.bullets.empty()
+
+            self._create_fleet()
+
+        self._check_aliens_bottom()
 
 if __name__ == '__main__':
     new = HeroGame()

@@ -25,6 +25,7 @@ class HeroGame:
 
         pygame.display.set_caption("Welcome to Naruto's journey to Hokage!")
         self.stats = GameStats(self)
+        self.sb = Scoreboard(self)
         self.background = Background('images/1739346.jpg', [0, 0])
         self.character = NarutoCharacter(self)
         self.bullets = pygame.sprite.Group()
@@ -106,6 +107,9 @@ class HeroGame:
             self.stats.reset_stats()
             self.settings.initialize_dynamic_settings()
             self.stats.game_active = True
+            self.sb.prep_score()
+            self.sb.prep_level()
+            self.sb.prep_narutos()
 
             # Get rid of remaining enemies and bullets.
             self.enemy.empty()
@@ -157,6 +161,7 @@ class HeroGame:
             bullet.blit_bullet()
 
         self.enemy.draw(self.screen)
+        self.sb.show_score()
 
         if not self.stats.game_active:
             self.play_button.draw_button()
@@ -184,11 +189,21 @@ class HeroGame:
             self.bullets.empty()
             self._create_fleet()
             self.settings.increase_speed()
+            self.stats.level += 1
+            self.sb.prep_level()
+
+        # if the dictionary collisions has any entries (key/value pairs) then we continue.
+        if collisions:
+            for enemies in collisions.values():
+                self.stats.score += self.settings.hinata_points * len(enemies)
+            self.sb.prep_score()
+            self.sb.check_high_score()
 
     def _ship_hit(self):
         """Respond to the ship being hit by an alien."""
         if self.stats.characters_remaining > 0:
             self.stats.characters_remaining -= 1
+            self.sb.prep_narutos()
             self.enemy.empty()
             self.bullets.empty()
             self._create_fleet()
